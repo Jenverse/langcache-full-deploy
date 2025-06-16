@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${match.timestamp}</td>
                 <td>${match.query}</td>
                 <td>${match.matched_query}</td>
-                <td>${formatModelName(match.model)}</td>
+                <td>${getModelLabel(match.model)}</td>
                 <td>${similarityFormatted}</td>
                 <td>${embeddingTimeFormatted}</td>
             `;
@@ -73,14 +73,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Helper function to format model names
-    function formatModelName(model) {
-        switch(model) {
-            case 'ollama-bge':
-                return 'Ollama BGE-3';
+    function getModelLabel(model) {
+        switch (model) {
             case 'redis-langcache':
                 return 'Redis Langcache-Embed';
-            case 'openai-embeddings':
-                return 'OpenAI Embeddings';
+            case 'ollama-bge':
+                return 'Ollama BGE-3';
             default:
                 return model;
         }

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 updateCharts(data);
-                updateMetrics(data);
+                updateAllMetrics(data);
             })
             .catch(error => {
                 console.error('Error fetching latency data:', error);
@@ -33,14 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to update metrics summary
-    function updateMetrics(data) {
-        // Update metrics for each embedding model
-        updateModelMetrics('ollama-bge', data['ollama-bge']);
+    function updateAllMetrics(data) {
         updateModelMetrics('redis-langcache', data['redis-langcache']);
-        updateModelMetrics('openai-embeddings', data['openai-embeddings']);
-
-        // Update direct LLM metrics
-        updateDirectLLMMetrics(data['direct-llm']);
+        updateModelMetrics('ollama-bge', data['ollama-bge']);
+        updateModelMetrics('direct-llm', data['direct-llm']);
     }
 
     // Helper function to update metrics for a specific model

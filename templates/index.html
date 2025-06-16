@@ -7,358 +7,226 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/operations-log.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
         <div class="logo">
             <img src="https://redis.com/wp-content/themes/wpx/assets/images/logo-redis.svg" alt="Redis Logo">
-            <h1>Langcache Demo</h1>
+            <h1>LangCache Demo</h1>
         </div>
     </header>
 
     <div class="app-container">
-        <!-- Side Panel with Tabs -->
-        <div class="side-panel">
-            <div class="tabs">
-                <button class="tab-button active" data-tab="demo">Demo</button>
-                <button class="tab-button" data-tab="latency">Latency</button>
-                <button class="tab-button" data-tab="query-analysis">Query Analysis</button>
-                <button class="tab-button" data-tab="operations-log">Operations Log</button>
-                <button class="tab-button" data-tab="settings">Settings</button>
+        <!-- Top Pills Navigation -->
+        <nav class="pills-nav">
+            <div class="pills-container">
+                <button class="pill-button active" data-pill="live-mode">Live Mode</button>
+                <button class="pill-button" data-pill="shadow-mode">Shadow Mode</button>
+                <button class="pill-button" data-pill="shadow-analysis">Shadow Analysis</button>
+                <button class="pill-button" data-pill="settings">⚙️ Settings</button>
             </div>
-        </div>
+        </nav>
 
         <!-- Main Content Area -->
-        <main>
-        <!-- Demo Tab Content -->
-        <div class="tab-content" id="demo-content" style="display: block;">
-        <div class="description">
-            <h2>Langcache Demo</h2>
-            <p>This demo shows the performance difference between using Redis Langcache vs. direct LLM queries with Google's Gemini model.</p>
-        </div>
+        <main class="main-content">
+            <!-- Live Mode Content -->
+            <div class="pill-content active" id="live-mode-content">
+                <div class="description">
+                    <p>This demo shows the performance difference between using Redis Langcache vs. direct LLM queries.</p>
+                </div>
 
-        <div class="model-selection">
-            <div class="model-dropdown">
-                <label for="llm-model">LLM Model:</label>
-                <select id="llm-model">
-                    <option value="gemini-1.5-flash" selected>Google Gemini Flash 1.5</option>
-                </select>
-            </div>
-            <div class="model-dropdown">
-                <label for="embedding-model">Embedding Model:</label>
-                <select id="embedding-model">
-                    <option value="redis-langcache" selected>Redis: Langcache-Embed</option>
-                    <option value="ollama-bge">Ollama: BGE-3</option>
-                    <option value="openai-embeddings">OpenAI Embeddings</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="query-section">
-            <div class="query-input">
-                <input type="text" id="query-input" placeholder="Enter your question here...">
-                <button id="submit-query">Ask</button>
-            </div>
-        </div>
-
-        <div class="panels-container">
-            <div class="panel cached">
-                <div class="panel-header">
-                    <h3>Semantic Cache Panel</h3>
-                    <div class="performance-indicator">
-                        <span class="response-time" id="cached-time"></span>
+                <div class="model-selection">
+                    <div class="model-dropdown">
+                        <label for="llm-model">LLM Model:</label>
+                        <select id="llm-model">
+                            <option value="gpt-4o-mini" selected>OpenAI GPT-4o-mini</option>
+                        </select>
+                    </div>
+                    <div class="model-dropdown">
+                        <label for="embedding-model">Embedding Model:</label>
+                        <select id="embedding-model">
+                            <option value="redis-langcache" selected>Redis: Langcache-Embed</option>
+                            <option value="openai-text-embedding-small">OpenAI: text-embedding-small</option>
+                            <option value="ollama-bge">Ollama: BGE-3</option>
+                        </select>
+                    </div>
+                    <div class="threshold-input">
+                        <label for="similarity-threshold">Similarity Threshold:</label>
+                        <input type="number" id="similarity-threshold" min="0" max="1" step="0.01" value="0.85" placeholder="0.85">
                     </div>
                 </div>
-                <div class="chat-container" id="cached-chat">
-                    <div class="welcome-message">
-                        <p>Using Redis Langcache with Google's Gemini LLM.</p>
-                        <p>Similar queries will be retrieved instantly from cache!</p>
-                        <p><strong>✓ Retrieved from Redis semantic cache</strong> will appear at the top when a cached response is found.</p>
-                    </div>
-                </div>
-            </div>
 
-            <div class="panel standard">
-                <div class="panel-header">
-                    <h3>Direct LLM Query</h3>
-                    <div class="performance-indicator">
-                        <span class="response-time" id="standard-time"></span>
+                <div class="query-section">
+                    <div class="query-input">
+                        <input type="text" id="query-input" placeholder="Enter your question here...">
+                        <button id="submit-query">Ask</button>
                     </div>
                 </div>
-                <div class="chat-container" id="standard-chat">
-                    <div class="welcome-message">
-                        <p>Using Google's Gemini LLM directly.</p>
-                        <p>Each query will be processed by the LLM, demonstrating the higher latency without caching.</p>
-                        <p><strong>Generated by LLM</strong> will always appear at the top, as this panel never uses the cache.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="how-it-works">
-            <h3>How It Works</h3>
-            <div class="workflow">
-                <div class="workflow-step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h4>User Query</h4>
-                        <p>You enter a question that gets sent to both systems simultaneously.</p>
-                    </div>
-                </div>
-                <div class="workflow-step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h4>Semantic Cache Check</h4>
-                        <p>The left panel checks Redis for semantically similar previous queries.</p>
-                    </div>
-                </div>
-                <div class="workflow-step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h4>Response Delivery</h4>
-                        <p>Cached responses appear instantly, while LLM queries take significantly more time to process, highlighting the latency difference.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    </main>
-
-    <!-- Latency Tab Content -->
-    <div class="tab-content" id="latency-content" style="display: none;">
-        <div class="latency-container">
-            <h2>Latency Metrics</h2>
-            <p>Current latency metrics for LLM and Cache operations.</p>
-
-            <!-- Direct LLM Queries Metrics (not tied to any embedding model) -->
-            <div class="model-section">
-                <h3 class="model-heading">Direct LLM Queries</h3>
-                <div class="metrics-summary">
-                    <div class="metric-card">
-                        <h4>LLM Latency</h4>
-                        <div class="metric-value" id="direct-llm-llm-latency">-</div>
-                    </div>
-                    <div class="metric-card">
-                        <h4>Most Used Model</h4>
-                        <div class="metric-value" id="direct-llm-most-used-model">-</div>
-                    </div>
-                    <div class="metric-card">
-                        <h4>Query Count</h4>
-                        <div class="metric-value" id="direct-llm-query-count">-</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Redis Langcache-Embed Metrics -->
-            <div class="model-section">
-                <h3 class="model-heading">Redis Langcache-Embed</h3>
-                <div class="metrics-summary">
-                    <div class="metric-card cache-operations">
-                        <h4>Cache Operations</h4>
-                        <div class="metric-breakdown">
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Total:</span>
-                                <span class="breakdown-value" id="redis-langcache-cache-latency">-</span>
+                <div class="panels-container">
+                    <div class="panel cached">
+                        <div class="panel-header">
+                            <h3>Semantic Cache Panel</h3>
+                            <div class="performance-indicator" style="display: none;">
+                                <span class="response-time" id="cached-time"></span>
                             </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Embedding:</span>
-                                <span class="breakdown-value" id="redis-langcache-embedding-latency">-</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Redis Search:</span>
-                                <span class="breakdown-value" id="redis-langcache-redis-latency">-</span>
+                        </div>
+                        <div class="chat-container" id="cached-chat">
+                            <div class="welcome-message">
+                                <p><strong>✓ Retrieved from Redis semantic cache</strong> will appear at the top when a cached response is found.</p>
                             </div>
                         </div>
                     </div>
-                    <div class="metric-card">
-                        <h4>Cache Hit Rate</h4>
-                        <div class="metric-value" id="redis-langcache-cache-hit-rate">-</div>
+
+                    <div class="panel standard">
+                        <div class="panel-header">
+                            <h3>Direct LLM Query</h3>
+                            <div class="performance-indicator" style="display: none;">
+                                <span class="response-time" id="standard-time"></span>
+                            </div>
+                        </div>
+                        <div class="chat-container" id="standard-chat">
+                            <div class="welcome-message">
+                                <p><strong>Generated by LLM</strong> will always appear at the top, as this panel never uses the cache.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- Shadow Mode Content -->
+            <div class="pill-content" id="shadow-mode-content">
+                <div class="description">
+                    <p>Shadow Mode: Cache performance is measured in the background while LLM responses are always shown to users.</p>
+                </div>
+
+                <div class="model-selection">
+                    <div class="model-dropdown">
+                        <label for="shadow-llm-model">LLM Model:</label>
+                        <select id="shadow-llm-model">
+                            <option value="gpt-4o-mini" selected>OpenAI GPT-4o-mini</option>
+                            <option value="gemini-1.5-flash">Google Gemini Flash 1.5</option>
+                        </select>
+                    </div>
+                    <div class="model-dropdown">
+                        <label for="shadow-embedding-model">Embedding Model:</label>
+                        <select id="shadow-embedding-model">
+                            <option value="redis-langcache" selected>Redis: Langcache-Embed</option>
+                            <option value="openai-text-embedding-small">OpenAI: text-embedding-small</option>
+                            <option value="ollama-bge">Ollama: BGE-3</option>
+                        </select>
+                    </div>
+                    <div class="threshold-input">
+                        <label for="shadow-similarity-threshold">Similarity Threshold:</label>
+                        <input type="number" id="shadow-similarity-threshold" min="0" max="1" step="0.01" value="0.85" placeholder="0.85">
+                    </div>
+                </div>
+
+                <div class="query-section">
+                    <div class="query-input">
+                        <input type="text" id="shadow-query-input" placeholder="Enter your question here...">
+                        <button id="shadow-ask-btn">Ask</button>
+                    </div>
+                </div>
+
+                <div class="panels-container">
+                    <div class="panel cached">
+                        <div class="panel-header">
+                            <h3>Semantic Cache Panel (Shadow Mode)</h3>
+                            <div class="performance-indicator" style="display: none;">
+                                <span class="response-time" id="shadow-cached-time"></span>
+                            </div>
+                        </div>
+                        <div class="chat-container" id="shadow-cached-chat">
+                            <div class="shadow-mode-notice" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                                <strong>🔍 Shadow Mode Active:</strong> No responses will be shown to users from LangCache. Only cache hit/miss status is recorded for analysis.
+                            </div>
+                            <div class="welcome-message">
+                                <p><strong>Cache operations are measured in the background.</strong> Actual responses are always served from the Direct LLM panel.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel standard">
+                        <div class="panel-header">
+                            <h3>Direct LLM Query</h3>
+                            <div class="performance-indicator" style="display: none;">
+                                <span class="response-time" id="shadow-standard-time"></span>
+                            </div>
+                        </div>
+                        <div class="chat-container" id="shadow-standard-chat">
+                            <div class="welcome-message">
+                                <p><strong>Generated by LLM</strong> will always appear at the top, as this panel never uses the cache.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- OpenAI Embeddings Metrics -->
-            <div class="model-section">
-                <h3 class="model-heading">OpenAI Embeddings</h3>
-                <div class="metrics-summary">
-                    <div class="metric-card cache-operations">
-                        <h4>Cache Operations</h4>
-                        <div class="metric-breakdown">
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Total:</span>
-                                <span class="breakdown-value" id="openai-embeddings-cache-latency">-</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Embedding:</span>
-                                <span class="breakdown-value" id="openai-embeddings-embedding-latency">-</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Redis Search:</span>
-                                <span class="breakdown-value" id="openai-embeddings-redis-latency">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <h4>Cache Hit Rate</h4>
-                        <div class="metric-value" id="openai-embeddings-cache-hit-rate">-</div>
-                    </div>
-                </div>
+            <!-- Shadow Analysis Content -->
+            <div class="pill-content" id="shadow-analysis-content">
+                <iframe src="/shadow-analysis"
+                        style="width: 100%; height: 800px; border: none; border-radius: 8px;">
+                </iframe>
             </div>
 
-            <!-- Ollama BGE-3 Metrics -->
-            <div class="model-section">
-                <h3 class="model-heading">Ollama BGE-3</h3>
-                <div class="metrics-summary">
-                    <div class="metric-card cache-operations">
-                        <h4>Cache Operations</h4>
-                        <div class="metric-breakdown">
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Total:</span>
-                                <span class="breakdown-value" id="ollama-bge-cache-latency">-</span>
+            <!-- Settings Content -->
+            <div class="pill-content" id="settings-content">
+                <div class="settings-container">
+                    <h2>⚙️ API Configuration</h2>
+                    <p class="settings-description">Configure your API keys and Redis URL. These will be stored securely in your browser's local storage.</p>
+
+                    <div class="settings-form">
+                        <div class="setting-group">
+                            <label for="openai-api-key">OpenAI API Key:</label>
+                            <div class="input-with-toggle">
+                                <input type="password" id="openai-api-key" placeholder="sk-..." />
+                                <button type="button" class="toggle-visibility" data-target="openai-api-key">👁️</button>
                             </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Embedding:</span>
-                                <span class="breakdown-value" id="ollama-bge-embedding-latency">-</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Redis Search:</span>
-                                <span class="breakdown-value" id="ollama-bge-redis-latency">-</span>
-                            </div>
+                            <small class="setting-help">Example: sk-proj-abc123... (Get your key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>)</small>
                         </div>
+
+                        <div class="setting-group">
+                            <label for="redis-url">Redis URL for LangCache Data:</label>
+                            <div class="input-with-toggle">
+                                <input type="password" id="redis-url" placeholder="redis://..." />
+                                <button type="button" class="toggle-visibility" data-target="redis-url">👁️</button>
+                            </div>
+                            <small class="setting-help">Example: redis://default:password@host:port (Your Redis Cloud or local Redis URL)</small>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button id="save-settings" class="save-btn">💾 Save Settings</button>
+                            <button id="test-settings" class="test-btn">🧪 Test Connection</button>
+                            <button id="clear-settings" class="clear-btn">🗑️ Clear All</button>
+                        </div>
+
+                        <div class="settings-status" id="settings-status"></div>
                     </div>
-                    <div class="metric-card">
-                        <h4>Cache Hit Rate</h4>
-                        <div class="metric-value" id="ollama-bge-cache-hit-rate">-</div>
+
+                    <div class="settings-info">
+                        <h3>🔒 Security & Privacy</h3>
+                        <ul>
+                            <li>✅ API keys are stored locally in your browser only</li>
+                            <li>✅ Keys are masked in the interface for security</li>
+                            <li>✅ Data is cleared when you close the browser</li>
+                            <li>✅ No keys are sent to our servers or stored permanently</li>
+                        </ul>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Query Analysis Tab Content -->
-    <div class="tab-content" id="query-analysis-content" style="display: none;">
-        <div class="query-analysis-container">
-            <h2>Query Match Analysis</h2>
-            <p>View the history of queries and their cache matches.</p>
-
-            <div class="filter-container">
-                <label for="model-filter">Filter by Embedding Model:</label>
-                <select id="model-filter">
-                    <option value="all">All Models</option>
-                    <option value="redis-langcache">Redis Langcache-Embed</option>
-                    <option value="openai-embeddings">OpenAI Embeddings</option>
-                    <option value="ollama-bge">Ollama BGE-3</option>
-                </select>
-            </div>
-
-            <div class="table-container">
-                <table id="query-matches-table">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>User Query</th>
-                            <th>Matched Cache Query</th>
-                            <th>Embedding Model</th>
-                            <th>Similarity</th>
-                            <th>Embedding Time (s)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="query-matches-body">
-                        <!-- Will be populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div id="no-matches-message" style="display: none;" class="no-matches">
-                <p>No query matches found. Try using the cache in the Demo tab first.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Operations Log Tab Content -->
-    <div class="tab-content" id="operations-log-content" style="display: none;">
-        <div class="operations-log-container">
-            <h2>Cache Operations Log</h2>
-            <p>View the detailed operations for the most recent query.</p>
-
-            <div class="log-header">
-                <div class="query-info">
-                    <h3>Query: <span id="log-query">No query executed yet</span></h3>
-                    <p>Embedding Model: <span id="log-model">-</span></p>
-                    <p>Timestamp: <span id="log-timestamp">-</span></p>
-                </div>
-                <div class="log-summary">
-                    <div class="summary-item" id="log-result-container">
-                        <span class="label">Result:</span>
-                        <span class="value" id="log-result">-</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="label">Total Time:</span>
-                        <span class="value" id="log-total-time">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="log-steps-container">
-                <h3>Operation Steps</h3>
-                <div id="log-steps" class="log-steps">
-                    <p class="no-steps">No operations logged yet. Try running a query in the Demo tab.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Tab Content -->
-    <div class="tab-content" id="settings-content" style="display: none;">
-        <div class="settings-wrapper">
-            <div class="settings-container">
-                <h2>Cache Settings</h2>
-                <p>Configure how the semantic cache operates.</p>
-
-                <div class="settings-section">
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <label for="ngram-toggle">Use N-gram Approximation</label>
-                            <p class="setting-description">Use lightweight n-gram analysis to predict cache hits before generating embeddings. This can reduce latency for likely cache misses.</p>
-                        </div>
-                        <div class="setting-control">
-                            <label class="switch">
-                                <input type="checkbox" id="ngram-toggle">
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="setting-item" id="threshold-container" style="display: none;">
-                        <div class="setting-label">
-                            <label for="probability-threshold">Probability Threshold</label>
-                            <p class="setting-description">Minimum probability required to generate embeddings (0.1-0.9).</p>
-                        </div>
-                        <div class="setting-control">
-                            <input type="range" id="probability-threshold" min="0.1" max="0.9" step="0.1" value="0.5">
-                            <span id="threshold-value">0.5</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="settings-actions">
-                    <button id="save-settings" class="primary-button">Save Settings</button>
-                    <button id="reset-settings" class="secondary-button">Reset to Defaults</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<footer>
-    <p>Redis Semantic Cache Demo | <a href="https://redis.com" target="_blank">Redis</a></p>
-</footer>
-
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script src="{{ url_for('static', filename='js/latency.js') }}"></script>
-<script src="{{ url_for('static', filename='js/query-analysis.js') }}"></script>
-<script src="{{ url_for('static', filename='js/operations-log.js') }}"></script>
-<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/latency.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/query-analysis.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/operations-log.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/shadow-mode.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pills-navigation.js') }}"></script>
 </body>
 </html>

@@ -5,7 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy application files
 COPY main.py .
+
+EXPOSE 8080
 
 CMD ["python", "main.py"]

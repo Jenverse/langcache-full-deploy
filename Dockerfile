@@ -5,7 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy application files
-COPY main.py .
+COPY . .
 
-CMD ["python", "main.py"]
+EXPOSE 5001
+
+CMD ["python", "app.py"] 

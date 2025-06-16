@@ -1,209 +1,183 @@
-# Redis Langcache Demo
+# LangCache Full Demo
 
-A demonstration application showcasing Redis Langcache for semantic caching of LLM responses.
+A comprehensive demonstration of LangCache semantic caching capabilities with live comparison, shadow mode analysis, and performance metrics.
 
-## Overview
+## 🚀 Features
 
-This application demonstrates the power of Redis Langcache for semantic caching of Large Language Model (LLM) responses. It provides a web interface that allows users to:
-
-1. Submit queries directly to LLMs (without caching)
-2. Submit queries through Redis Langcache (with semantic caching)
-3. Compare performance metrics between cached and non-cached responses
-4. Analyze query matches and cache operations
-5. View detailed operation logs for each query
-
-## Features
-
-- **Semantic Caching**: Uses vector similarity to find semantically similar queries in the cache
-- **Multiple Embedding Models**: Supports multiple embedding models for comparison:
-  - Redis Langcache-Embed (default)
-  - OpenAI Embeddings
-  - Ollama BGE-3
-- **Performance Metrics**: Tracks and displays latency metrics for:
-  - Cache operations (embedding generation + Redis search)
-  - LLM response generation
-  - Cache hit rates
-- **Query Analysis**: Allows users to analyze which queries match in the cache and their similarity scores
-- **Operations Log**: Provides detailed logs of each step in the query processing pipeline
-- **Settings Management**: Customize similarity thresholds and other parameters
+- **Live Mode**: Real-time comparison between semantic cache and direct LLM responses
+- **Shadow Mode**: Background cache operation recording without affecting user experience
+- **Shadow Analysis**: Detailed performance analysis with cache hit/miss statistics
+- **Settings Management**: Secure in-browser API key and Redis URL configuration
+- **Multiple Embedding Models**: Support for Redis LangCache and OpenAI embeddings
+- **Real-time Metrics**: Latency tracking, token estimation, and cost analysis
+- **No Server Secrets**: Users provide their own API keys via secure Settings UI
 
 ## Architecture
 
-The application consists of several components:
+- **Flask Web Application**: Modern UI with pills navigation
+- **Three Redis Langcache Instances**: Different embedding models
+- **Custom Embeddings Service**: Ollama BGE-3 model
+- **Redis Database**: Vector storage and search
+- **Google Gemini API**: LLM integration
 
-1. **Web Application**: A Flask application that provides the user interface and handles query processing
-2. **Redis Langcache Services**: Three instances of Redis Langcache, one for each embedding model
-3. **Custom Embeddings Service**: A FastAPI service that provides embeddings using the redis/langcache-embed-v1 model
-4. **Redis Database**: Stores the vector embeddings and cached responses
+## Quick Start
 
-## Prerequisites
+### Prerequisites
 
 - Docker and Docker Compose
-- Python 3.9+
-- Redis Stack
-- Hugging Face API token (for custom embeddings)
-- Google AI API key (for Gemini LLM)
+- Python 3.8+
+- Google Gemini API key
 
-## Installation
-
-### Using Docker Compose (Recommended)
+### Environment Setup
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/redis-langcache-demo.git
-   cd redis-langcache-demo
-   ```
+```bash
+git clone <repository-url>
+cd langcache-demo
+```
 
-2. Create a `.env` file with your API keys:
-   ```
-   GEMINI_API_KEY=your_gemini_api_key_here
-   GITHUB_TOKEN=your_github_token_here
-   OPENAI_API_KEY=your_openai_api_key_here
-   HF_TOKEN=your_huggingface_token_here
-   ```
+2. Create a `.env` file:
+```bash
+# Google Gemini Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
 
-   A template file `.env.example` is provided for reference.
+# Redis Configuration (optional, defaults provided)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
 
-   **IMPORTANT**: The application requires all these API keys to function properly. The docker-compose.yaml file references these environment variables to avoid hardcoding sensitive credentials.
+### Running with Docker Compose
 
-3. Start the services using Docker Compose:
-   ```bash
-   docker-compose up -d
-   ```
+1. Start all services:
+```bash
+docker-compose up -d
+```
 
-4. Access the application at http://localhost:5001
+This will start:
+- Redis database (port 6379)
+- Redis Langcache-Embed service (port 8081)
+- Ollama BGE-3 service (port 8080)
 
-### Manual Installation
+2. Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/redis-langcache-demo.git
-   cd redis-langcache-demo
-   ```
+3. Run the Flask application:
+```bash
+python3 app.py
+```
 
-2. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+4. Open your browser to `http://localhost:5001`
 
-3. Start Redis:
-   ```bash
-   docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
-   ```
+### Manual Service Setup
 
-4. Start the custom embeddings service:
-   ```bash
-   cd custom-embeddings
-   python main.py
-   ```
+If you prefer to run services individually:
 
-5. Start the Redis Langcache services:
-   ```bash
-   # Start Ollama BGE service
-   docker run -d --name langcache-ollama -p 8080:8080 artifactory.dev.redislabs.com:443/cloud-docker-dev-local/ai-services/langcache:0.0.7
+```bash
+# Start Redis
+docker run -d --name redis-cache -p 6379:6379 redis:latest
 
-   # Start Redis Langcache service
-   docker run -d --name langcache-redis -p 8081:8080 artifactory.dev.redislabs.com:443/cloud-docker-dev-local/ai-services/langcache:0.0.7
+# Start Redis Langcache service
+docker run -d --name langcache-redis -p 8081:8080 artifactory.dev.redislabs.com:443/cloud-docker-dev-local/ai-services/langcache:0.0.7
 
-   # Start OpenAI service
-   docker run -d --name langcache-openai -p 8082:8080 artifactory.dev.redislabs.com:443/cloud-docker-dev-local/ai-services/langcache:0.0.7
-   ```
-
-6. Start the main application:
-   ```bash
-   python app.py
-   ```
-
-7. Access the application at http://localhost:5001
+# Start Ollama BGE service
+cd custom-embeddings
+docker build -t ollama-bge .
+docker run -d --name ollama-bge -p 8080:8080 ollama-bge
+```
 
 ## Usage
 
-### Direct LLM Queries
+### Live Mode
+- **Demo Tab**: Interactive comparison between cached and direct LLM queries
+- **Latency Tab**: Real-time performance metrics
+- **Query Analysis**: Cache hit analysis and query matching
+- **Operations Log**: Detailed operation tracking
+- **Settings**: Configure similarity thresholds
 
-1. Select the "Direct LLM" panel
-2. Enter your query
-3. Choose an LLM model (e.g., Gemini 1.5 Flash)
-4. Click "Submit"
+### Shadow Mode
+- **Zero-Risk Testing**: Run cache checks alongside production queries
+- **Real-Time Metrics**: Track performance without affecting responses
+- **Cost Analysis**: Estimate potential savings
 
-### Redis Langcache Queries
+### Shadow Mode Analysis
+- **Query Patterns**: Analyze usage patterns and peak times
+- **Performance Insights**: Detailed charts and statistics
+- **Cost Breakdown**: ROI analysis for caching implementation
 
-1. Select the "Redis Langcache" panel
-2. Enter your query
-3. Choose an embedding model (Redis Langcache-Embed is the default)
-4. Click "Submit"
+## API Endpoints
 
-### Viewing Metrics
+### Live Mode
+- `GET /` - Main application interface
+- `POST /query` - Process queries (with/without cache)
+- `GET /latency-data` - Get performance metrics
+- `GET /query-analysis` - Get query match analysis
+- `GET /operations-log` - Get detailed operation logs
 
-1. Click on the "Latency" tab to view performance metrics
-2. See cache hit rates and latency metrics for each embedding model
-3. Compare performance between different models
+### Shadow Mode
+- `POST /shadow-mode/start` - Start shadow mode tracking
+- `POST /shadow-mode/stop` - Stop shadow mode tracking
+- `GET /shadow-mode/status` - Get current status and stats
+- `GET /shadow-mode/analysis` - Get detailed analysis data
 
-### Query Analysis
+## Configuration
 
-1. Click on the "Query Analysis" tab
-2. View the history of queries and their cache matches
-3. Filter by embedding model
-4. See similarity scores for each match
+### Similarity Threshold
+Adjust the semantic similarity threshold (0.1-1.0) to control cache hit sensitivity:
+- Higher values: More strict matching, fewer cache hits
+- Lower values: More lenient matching, more cache hits
 
-### Operations Log
+### Embedding Models
+Switch between embedding models to compare performance:
+- **Redis Langcache-Embed**: Optimized for speed
+- **Ollama BGE-3**: High-quality embeddings
 
-1. Click on the "Operations Log" tab
-2. Select a query from the dropdown
-3. View detailed logs of each step in the query processing pipeline
+## Development
 
-## How It Works
+### Project Structure
+```
+├── app.py                 # Main Flask application
+├── routes/
+│   ├── live.py           # Live mode routes
+│   └── shadow.py         # Shadow mode routes
+├── utils/
+│   └── helpers.py        # Shared utilities
+├── templates/
+│   └── index.html        # Main UI template
+├── static/
+│   ├── css/              # Stylesheets
+│   └── js/               # JavaScript files
+├── custom-embeddings/    # Ollama BGE-3 service
+└── docker-compose.yaml   # Service orchestration
+```
 
-1. **Direct LLM Queries**:
-   - User submits a query
-   - Application sends the query directly to the LLM
-   - LLM generates a response
-   - Response is displayed to the user
+### Adding New Features
+1. Add routes to appropriate blueprint (`routes/live.py` or `routes/shadow.py`)
+2. Add shared utilities to `utils/helpers.py`
+3. Update frontend in `templates/index.html` and `static/js/`
 
-2. **Redis Langcache Queries**:
-   - User submits a query
-   - Application generates an embedding for the query
-   - Application searches Redis for similar queries
-   - If a similar query is found (cache hit):
-     - Cached response is returned
-   - If no similar query is found (cache miss):
-     - Application sends the query to the LLM
-     - LLM generates a response
-     - Response is stored in the cache
-     - Response is displayed to the user
+## Troubleshooting
 
-## Cache Operations Breakdown
+### Common Issues
 
-When using Redis Langcache, the cache operations consist of two main components:
+1. **Port 5000 in use**: The app now runs on port 5001 by default
+2. **Redis connection failed**: Ensure Redis is running on port 6379
+3. **Langcache services not responding**: Check Docker containers are running
+4. **API key errors**: Verify your Gemini API key in `.env` file
 
-1. **Embedding Generation**: Converting the query text into a vector embedding
-   - This is typically the most time-consuming part (>99% of the total cache operation time)
-   - Different embedding models have different performance characteristics
+### Logs
+Check application logs for detailed error information:
+```bash
+docker-compose logs -f
+```
 
-2. **Redis Search**: Searching for similar vectors in Redis
-   - This is extremely fast, typically less than 1ms
-   - Uses vector similarity search to find the most similar cached queries
+## Performance Tips
 
-The application provides a detailed breakdown of these operations in the Latency tab.
-
-## Performance Considerations
-
-- **Embedding Generation**: The most time-consuming part of the caching process
-- **Redis Search**: Very fast, typically less than 1ms
-- **Cache Hit Rate**: Depends on the similarity threshold (default: 0.85) and the variety of queries
-- **LLM Latency**: Varies by model and query complexity
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. **Optimal Similarity Threshold**: Start with 0.85 and adjust based on your use case
+2. **Cache Warm-up**: Run common queries to populate the cache
+3. **Monitor Hit Rates**: Use the analytics to optimize your caching strategy
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Redis Labs for Redis Langcache
-- Hugging Face for the embedding models
-- Google for the Gemini LLM API
+This project is for demonstration purposes. Please check individual component licenses for production use.
