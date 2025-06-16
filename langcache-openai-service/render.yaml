@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: langcache-openai
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: REDIS_URL
+        sync: false
+    healthCheckPath: /health
