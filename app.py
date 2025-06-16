@@ -21,19 +21,38 @@ def shadow_analysis():
     """Serve the shadow analysis page"""
     return render_template('shadow_analysis.html')
 
+@app.route('/api/test')
+def test_api():
+    """Test endpoint to verify API is working"""
+    return jsonify({'status': 'ok', 'message': 'API is working'})
+
 @app.route('/api/init-cache', methods=['POST'])
 def init_cache():
     """Initialize cache with user's Redis URL"""
     try:
+        print("=== INIT CACHE ENDPOINT CALLED ===")
+
+        # Get JSON data
         data = request.get_json()
+        print(f"Request data: {data}")
+
+        if not data:
+            print("No JSON data received")
+            return jsonify({'error': 'No JSON data provided'}), 400
+
         user_redis_url = data.get('redis_url')
+        print(f"Redis URL: {user_redis_url[:30]}..." if user_redis_url else "No Redis URL")
 
         if not user_redis_url:
             return jsonify({'error': 'Redis URL required'}), 400
 
         # Create cache using user's Redis URL
+        print("Importing create_cache...")
         from utils.helpers import create_cache
+
+        print("Calling create_cache...")
         success = create_cache(user_redis_url)
+        print(f"Create cache result: {success}")
 
         if success:
             return jsonify({'success': True, 'message': 'Cache initialized successfully'})
@@ -41,7 +60,10 @@ def init_cache():
             return jsonify({'success': False, 'message': 'Cache initialization failed'})
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"ERROR in init_cache: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/shadow-data')
 def get_shadow_data():

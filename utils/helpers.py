@@ -266,7 +266,7 @@ def create_cache(user_redis_url=None):
             print(f"Using fallback cache ID for {model_name}: {cache_ids[model_name]}")
         return False
 
-def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None):
+def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None, user_redis_url=None):
     """Search for a similar query in the cache using the specified embedding model"""
     global operations_log
 
