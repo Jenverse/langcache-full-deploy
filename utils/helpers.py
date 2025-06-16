@@ -217,67 +217,54 @@ def get_current_timestamp():
     rounded_time = now.replace(minute=minute, second=0, microsecond=0)
     return rounded_time.strftime('%Y-%m-%d %H:%M')
 
-def create_cache():
+def create_cache(user_redis_url=None):
     global cache_ids
+    import uuid
 
-    # Handle custom embedding services (ollama-bge and openai-embeddings)
-    for model_name in ['ollama-bge', 'openai-text-embedding-small']:
-        base_url = LANGCACHE_URLS[model_name]
-        url = f"{base_url}/v1/admin/caches"
-        redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-        payload = {
-            "indexName": f"{LANGCACHE_INDEX_NAME}_{model_name}",
-            "redisUrls": [redis_url],
-            "overwriteIfExists": True,
-            "allowExistingData": True,
-            "defaultSimilarityThreshold": 0.85
-        }
-        try:
-            response = requests.post(url, json=payload)
-            if response.status_code == 200 or response.status_code == 201:
-                data = response.json()
-                cache_id = data.get('cacheId')
-                cache_ids[model_name] = cache_id
-                print(f"Created cache for {model_name}: {cache_id}")
-        except Exception as e:
-            print(f"Error creating cache for {model_name}: {e}")
+    # Use user Redis URL or fallback to environment
+    redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
-    # Handle Redis LangCache service (different API)
-    model_name = 'redis-langcache'
+    if not redis_url or redis_url == 'redis://localhost:6379':
+        print("No valid Redis URL provided, using fallback cache IDs")
+        # Create fallback cache IDs
+        for model_name in ['ollama-bge', 'openai-text-embedding-small', 'redis-langcache']:
+            cache_ids[model_name] = f"fallback_{model_name}_{int(time.time())}"
+        return True
+
     try:
-        base_url = LANGCACHE_URLS[model_name]
-        redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+        # Test Redis connection
+        import redis
+        redis_client = redis.from_url(redis_url, decode_responses=True)
+        redis_client.ping()
+        print(f"Connected to Redis: {redis_url[:30]}...")
 
-        # For Redis LangCache, use the correct API format
-        url = f"{base_url}/v1/admin/caches"
-        payload = {
-            "indexName": f"{LANGCACHE_INDEX_NAME}_{model_name}",
-            "redisUrls": [redis_url],
-            "modelName": "redis/langcache-embed-v1",
-            "overwriteIfExists": True,
-            "allowExistingData": True,
-            "defaultSimilarityThreshold": 0.85
-        }
-
-        response = requests.post(url, json=payload)
-        if response.status_code == 200 or response.status_code == 201:
-            data = response.json()
-            cache_id = data.get('cacheId')
+        # Create 3 cache IDs directly in Redis
+        for model_name in ['ollama-bge', 'openai-text-embedding-small', 'redis-langcache']:
+            # Generate unique cache ID
+            cache_id = str(uuid.uuid4())
             cache_ids[model_name] = cache_id
-            print(f"Created Redis LangCache: {cache_id}")
-        else:
-            print(f"Redis LangCache creation failed: {response.status_code} - {response.text}")
-            # For now, use a default cache ID for Redis LangCache
-            cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-            print(f"Using default cache ID for {model_name}: {cache_ids[model_name]}")
+
+            # Store cache metadata in Redis
+            cache_key = f"langcache:cache:{cache_id}"
+            cache_metadata = {
+                'cache_id': cache_id,
+                'embedding_model': model_name,
+                'created_at': datetime.datetime.now().isoformat(),
+                'index_name': f"{LANGCACHE_INDEX_NAME}_{model_name}",
+                'redis_url': redis_url[:30] + "..." if len(redis_url) > 30 else redis_url
+            }
+            redis_client.hset(cache_key, mapping=cache_metadata)
+            print(f"Created cache for {model_name}: {cache_id}")
+
+        return True
 
     except Exception as e:
-        print(f"Error creating Redis LangCache: {e}")
-        # Use a default cache ID as fallback
-        cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-        print(f"Using fallback cache ID for {model_name}: {cache_ids[model_name]}")
-
-    return len(cache_ids) > 0
+        print(f"Error creating caches with Redis URL: {e}")
+        # Use fallback cache IDs
+        for model_name in ['ollama-bge', 'openai-text-embedding-small', 'redis-langcache']:
+            cache_ids[model_name] = f"fallback_{model_name}_{int(time.time())}"
+            print(f"Using fallback cache ID for {model_name}: {cache_ids[model_name]}")
+        return False
 
 def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None):
     """Search for a similar query in the cache using the specified embedding model"""

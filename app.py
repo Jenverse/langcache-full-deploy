@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, render_template
+from flask import Flask, send_from_directory, jsonify, render_template, request
 from routes.live import live_bp
 from routes.shadow import shadow_bp
 from utils.helpers import create_cache
@@ -20,6 +20,28 @@ def shadow_chatbot():
 def shadow_analysis():
     """Serve the shadow analysis page"""
     return render_template('shadow_analysis.html')
+
+@app.route('/api/init-cache', methods=['POST'])
+def init_cache():
+    """Initialize cache with user's Redis URL"""
+    try:
+        data = request.get_json()
+        user_redis_url = data.get('redis_url')
+
+        if not user_redis_url:
+            return jsonify({'error': 'Redis URL required'}), 400
+
+        # Create cache using user's Redis URL
+        from utils.helpers import create_cache
+        success = create_cache(user_redis_url)
+
+        if success:
+            return jsonify({'success': True, 'message': 'Cache initialized successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Cache initialization failed'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/shadow-data')
 def get_shadow_data():
