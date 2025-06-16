@@ -155,6 +155,12 @@ if __name__ == '__main__':
         print("✓ Caches created successfully")
     else:
         print("⚠ Warning: Some caches may not have been created")
-    
+
     print("Starting Flask application...")
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    import os
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('VERCEL_ENV') != 'production'
+    app.run(debug=debug, host='0.0.0.0', port=port)
+
+# Export app for Vercel serverless
+application = app

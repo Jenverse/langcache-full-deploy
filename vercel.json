@@ -3,16 +3,29 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
   ],
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "app.py"
     }
   ],
   "env": {
+    "VERCEL_ENV": "production",
     "FLASK_ENV": "production"
+  },
+  "functions": {
+    "app.py": {
+      "maxDuration": 30
+    }
   }
 }
