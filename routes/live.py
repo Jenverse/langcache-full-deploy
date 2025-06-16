@@ -50,7 +50,7 @@ def process_query():
         
         # Always check cache in shadow mode
         cache_start_time = time.time()
-        cached_result = search_cache(query, embedding_model, similarity_threshold)
+        cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url)
         cache_time = time.time() - cache_start_time
         
         # Always call LLM in shadow mode
@@ -67,7 +67,7 @@ def process_query():
 
             # First, check cache in background for analysis
             cache_start_time = time.time()
-            cached_result = search_cache(query, embedding_model, similarity_threshold)
+            cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url)
             cache_time = time.time() - cache_start_time
 
             # Get actual timing breakdown if available
@@ -124,7 +124,7 @@ def process_query():
 
             # Store this response in the cache for future shadow mode analysis
             try:
-                add_to_cache(query, response, embedding_model)
+                add_to_cache(query, response, embedding_model, user_redis_url)
                 print("SHADOW MODE - Response added to cache for future analysis")
             except Exception as e:
                 print(f"SHADOW MODE - Error adding response to cache: {e}")
@@ -188,7 +188,7 @@ def process_query():
 
             # First, check if we have a similar query in the Redis semantic cache
             cache_start_time = time.time()
-            cached_result = search_cache(query, embedding_model, similarity_threshold)
+            cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url)
             cache_time = time.time() - cache_start_time
 
             # Get actual timing breakdown if available
@@ -266,7 +266,7 @@ def process_query():
 
             # Store this response in the cache for future use
             try:
-                add_to_cache(query, response, embedding_model)
+                add_to_cache(query, response, embedding_model, user_redis_url)
             except Exception as e:
                 print(f"Error adding response to cache: {e}")
 
