@@ -90,13 +90,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem(STORAGE_KEYS.REDIS_URL, redisUrl);
             }
 
-            showStatus('✅ Settings saved successfully! They will be used for API calls.', 'success');
+            showStatus('✅ Settings saved successfully! Initializing cache...', 'success');
 
             // Update global settings for immediate use
             window.userSettings = {
                 openaiApiKey: openaiKey || null,
                 redisUrl: redisUrl || null
             };
+
+            // Initialize cache with Redis URL
+            if (redisUrl) {
+                initializeCache(redisUrl);
+            }
 
         } catch (error) {
             console.error('Error saving settings:', error);
@@ -182,6 +187,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 statusDiv.style.display = 'none';
             }, 5000);
         }
+    }
+
+    function initializeCache(redisUrl) {
+        fetch('/api/init-cache', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                redis_url: redisUrl
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatus('✅ Cache initialized successfully! Ready for queries.', 'success');
+            } else {
+                showStatus('⚠️ Cache initialization failed: ' + data.message, 'warning');
+            }
+        })
+        .catch(error => {
+            console.error('Cache initialization error:', error);
+            showStatus('❌ Cache initialization error. Check console for details.', 'error');
+        });
     }
 
     // Make settings available globally for other scripts
