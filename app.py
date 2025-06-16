@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory, jsonify, render_template
 from routes.live import live_bp
 from routes.shadow import shadow_bp
 from utils.helpers import create_cache
@@ -18,8 +18,8 @@ def shadow_chatbot():
 
 @app.route('/shadow-analysis')
 def shadow_analysis():
-    """Serve the data analysis page from shadow_mode_public"""
-    return send_from_directory('shadow_mode_public/examples/simple-chatbot/templates', 'data_analysis.html')
+    """Serve the shadow analysis page"""
+    return render_template('shadow_analysis.html')
 
 @app.route('/api/shadow-data')
 def get_shadow_data():
