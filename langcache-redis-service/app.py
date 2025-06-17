@@ -16,9 +16,13 @@ from sentence_transformers import SentenceTransformer
 
 app = Flask(__name__)
 
-# Initialize embedding model
+# Initialize embedding model with HF token
 print("Loading Redis LangCache embedding model...")
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # Public model
+hf_token = os.environ.get('HF_TOKEN')
+if hf_token:
+    embedding_model = SentenceTransformer('redis/langcache-embed-v1', token=hf_token)
+else:
+    embedding_model = SentenceTransformer('redis/langcache-embed-v1')
 print("✓ Redis LangCache embedding model loaded")
 
 def get_redis_client(redis_url=None):
