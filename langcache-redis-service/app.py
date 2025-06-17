@@ -18,12 +18,13 @@ app = Flask(__name__)
 
 # Initialize embedding model
 print("Loading Redis LangCache embedding model...")
-embedding_model = SentenceTransformer('redis/redis-vss-langcache')
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # Public model
 print("✓ Redis LangCache embedding model loaded")
 
-def get_redis_client():
-    """Get Redis client from environment or default"""
-    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+def get_redis_client(redis_url=None):
+    """Get Redis client from parameter or environment"""
+    if not redis_url:
+        redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     return redis.from_url(redis_url, decode_responses=True)
 
 @app.route('/health')
@@ -41,12 +42,15 @@ def create_cache():
         index_name = data.get('indexName', 'default_cache')
         redis_urls = data.get('redisUrls', [])
         model_name = data.get('modelName', 'redis/langcache-embed-v1')
-        
+
+        # Get Redis URL from request
+        redis_url = redis_urls[0] if redis_urls else None
+
         # Generate unique cache ID
         cache_id = str(uuid.uuid4())
-        
+
         # Store cache metadata
-        redis_client = get_redis_client()
+        redis_client = get_redis_client(redis_url)
         cache_key = f"langcache:cache:{cache_id}"
         cache_metadata = {
             'cache_id': cache_id,
@@ -83,8 +87,11 @@ def search_cache(cache_id):
         # Generate embedding for query
         query_embedding = embedding_model.encode(query)
         
+        # Get Redis URL from headers or use default
+        redis_url = request.headers.get('X-Redis-URL')
+
         # Search for similar entries in Redis
-        redis_client = get_redis_client()
+        redis_client = get_redis_client(redis_url)
         
         # Get all cached entries for this cache
         pattern = f"langcache:entry:{cache_id}:*"
@@ -148,8 +155,11 @@ def add_to_cache(cache_id):
         # Generate entry ID
         entry_id = str(uuid.uuid4())
         
+        # Get Redis URL from headers or use default
+        redis_url = request.headers.get('X-Redis-URL')
+
         # Store in Redis
-        redis_client = get_redis_client()
+        redis_client = get_redis_client(redis_url)
         entry_key = f"langcache:entry:{cache_id}:{entry_id}"
         
         entry_data = {
