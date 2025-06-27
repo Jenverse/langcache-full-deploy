@@ -11,6 +11,17 @@ app = Flask(__name__)
 app.register_blueprint(live_bp)
 app.register_blueprint(shadow_bp)
 
+# Ensure static files are served properly on Vercel
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Serve static files"""
+    return send_from_directory('static', filename)
+
+@app.route('/')
+def index():
+    """Serve the main application page"""
+    return render_template('index.html')
+
 @app.route('/shadow-chatbot')
 def shadow_chatbot():
     """Serve the simple chatbot from shadow_mode_public"""
