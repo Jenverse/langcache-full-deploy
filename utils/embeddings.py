@@ -7,13 +7,11 @@ import os
 import json
 import uuid
 import time
-import numpy as np
 import redis
 from typing import List, Dict, Any, Optional, Union
 from openai import OpenAI
 
 # Global variables for models
-_redis_langcache_model = None
 _openai_client = None
 
 def get_redis_client(redis_url=None):
@@ -32,69 +30,27 @@ def get_openai_client(api_key=None):
         _openai_client = OpenAI(api_key=key)
     return _openai_client
 
-def get_redis_langcache_model():
-    """Get Redis LangCache model (sentence-transformers)"""
-    global _redis_langcache_model
-    if _redis_langcache_model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            hf_token = os.environ.get("HF_TOKEN")
-
-            if not hf_token:
-                print("⚠ Warning: HF_TOKEN not provided. Redis LangCache model requires Hugging Face authentication.")
-                print("   Get your token from: https://huggingface.co/settings/tokens")
-                _redis_langcache_model = None
-                return None
-
-            model_name = "redis/langcache-embed-v1"
-            _redis_langcache_model = SentenceTransformer(model_name, use_auth_token=hf_token)
-            print(f"✓ Loaded Redis LangCache model: {model_name}")
-        except Exception as e:
-            print(f"⚠ Warning: Could not load Redis LangCache model: {e}")
-            print("   This might be due to:")
-            print("   1. Invalid or missing HF_TOKEN")
-            print("   2. No access to redis/langcache-embed-v1 model")
-            print("   3. Network connectivity issues")
-            print("   Falling back to OpenAI embeddings for redis-langcache requests.")
-            _redis_langcache_model = None
-    return _redis_langcache_model
+# Removed Redis LangCache model - using OpenAI only for Vercel compatibility
 
 def get_embedding(text: str, model_type: str = "openai", api_key: str = None) -> List[float]:
     """
-    Get embedding for text using specified model
-    
+    Get embedding for text using OpenAI (simplified for Vercel deployment)
+
     Args:
         text: Input text
-        model_type: 'openai', 'redis-langcache', or 'ollama-bge'
-        api_key: API key for OpenAI (if using OpenAI model)
-    
+        model_type: Any model type (all will use OpenAI for Vercel compatibility)
+        api_key: API key for OpenAI
+
     Returns:
         List of embedding values
     """
-    if model_type == "openai-text-embedding-small":
-        client = get_openai_client(api_key)
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text
-        )
-        return response.data[0].embedding
-    
-    elif model_type == "redis-langcache":
-        model = get_redis_langcache_model()
-        if model is None:
-            # Fallback to OpenAI if Redis model not available
-            return get_embedding(text, "openai-text-embedding-small", api_key)
-        
-        embedding = model.encode([text], normalize_embeddings=True)[0]
-        return embedding.astype(np.float32).tolist()
-    
-    elif model_type == "ollama-bge":
-        # For now, fallback to redis-langcache (same BGE model)
-        return get_embedding(text, "redis-langcache", api_key)
-    
-    else:
-        # Default to OpenAI
-        return get_embedding(text, "openai-text-embedding-small", api_key)
+    # For Vercel deployment, always use OpenAI embeddings regardless of model_type
+    client = get_openai_client(api_key)
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text
+    )
+    return response.data[0].embedding
 
 def create_cache(cache_name: str, redis_url: str) -> str:
     """
@@ -174,25 +130,26 @@ def search_cache(cache_id: str, prompt: str, redis_url: str,
         redis_client = get_redis_client(redis_url)
         
         # Get embedding for the search prompt
-        query_embedding = np.array(get_embedding(prompt, embedding_model, api_key))
-        
+        query_embedding = get_embedding(prompt, embedding_model, api_key)
+
         # Get all entries for this cache
         entry_ids = redis_client.smembers(f"cache_entries:{cache_id}")
-        
+
         best_match = None
         best_similarity = 0
-        
+
         for entry_id in entry_ids:
             entry_data = redis_client.hgetall(f"cache_entry:{cache_id}:{entry_id}")
             if not entry_data:
                 continue
-            
-            stored_embedding = np.array(json.loads(entry_data['embedding']))
-            
-            # Calculate cosine similarity
-            similarity = np.dot(query_embedding, stored_embedding) / (
-                np.linalg.norm(query_embedding) * np.linalg.norm(stored_embedding)
-            )
+
+            stored_embedding = json.loads(entry_data['embedding'])
+
+            # Calculate cosine similarity using pure Python
+            dot_product = sum(a * b for a, b in zip(query_embedding, stored_embedding))
+            norm_a = sum(a * a for a in query_embedding) ** 0.5
+            norm_b = sum(b * b for b in stored_embedding) ** 0.5
+            similarity = dot_product / (norm_a * norm_b)
             
             if similarity > best_similarity and similarity >= similarity_threshold:
                 best_similarity = similarity

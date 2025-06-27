@@ -6,7 +6,7 @@ A comprehensive demonstration of LangCache semantic caching capabilities with li
 
 Deploy to Vercel with one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=OPENAI_API_KEY,REDIS_URL,HF_TOKEN&envDescription=OpenAI%20API%20key%2C%20Redis%20URL%2C%20and%20Hugging%20Face%20token%20for%20LangCache%20Full%20Demo&project-name=langcache-full-demo&repository-name=langcache-full-demo)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=OPENAI_API_KEY,REDIS_URL&envDescription=OpenAI%20API%20key%20and%20Redis%20URL%20for%20LangCache%20Full%20Demo&project-name=langcache-full-demo&repository-name=langcache-full-demo)
 
 ## 🚀 Features
 
@@ -40,10 +40,11 @@ When deploying to Vercel, you'll need to set these environment variables:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key for LLM queries (GPT models) | ✅ Yes |
+| `OPENAI_API_KEY` | OpenAI API key for LLM queries and embeddings | ✅ Yes |
 | `REDIS_URL` | Redis connection URL (e.g., `redis://user:pass@host:port`) | ✅ Yes |
-| `HF_TOKEN` | Hugging Face token for Redis LangCache embedding model | ✅ Yes |
 | `GEMINI_API_KEY` | Google Gemini API key (if using Gemini models) | ❌ Optional |
+
+**Note:** For Vercel deployment, all embedding models (redis-langcache, ollama-bge, openai-text-embedding-small) use OpenAI embeddings for optimal performance and compatibility.
 
 ### Local Environment Setup
 
@@ -55,14 +56,11 @@ cd langcache-demo
 
 2. Create a `.env` file:
 ```bash
-# OpenAI Configuration
+# OpenAI Configuration (for LLM and embeddings)
 OPENAI_API_KEY=your_openai_api_key_here
 
 # Redis Configuration
 REDIS_URL=redis://localhost:6379
-
-# Hugging Face Token (for Redis LangCache embedding model)
-HF_TOKEN=your_huggingface_token_here
 
 # Optional: Google Gemini (if using Gemini models)
 GEMINI_API_KEY=your_gemini_api_key_here
