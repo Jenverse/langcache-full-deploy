@@ -4,7 +4,7 @@ import time
 import statistics
 from collections import defaultdict
 from utils.helpers import (
-    get_current_timestamp, create_cache, search_cache, add_to_cache, generate_gemini_response,
+    get_current_timestamp, create_cache, search_cache, add_to_cache_helper, generate_gemini_response,
     generate_llm_response_with_user_key, latency_data, operations_log, query_matches, cache_ids,
     DEFAULT_EMBEDDING_MODEL, shadow_mode_data
 )
@@ -50,7 +50,7 @@ def process_query():
         
         # Always check cache in shadow mode
         cache_start_time = time.time()
-        cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url)
+        cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url, user_openai_key)
         cache_time = time.time() - cache_start_time
         
         # Always call LLM in shadow mode
@@ -67,7 +67,7 @@ def process_query():
 
             # First, check cache in background for analysis
             cache_start_time = time.time()
-            cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url)
+            cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url, user_openai_key)
             cache_time = time.time() - cache_start_time
 
             # Get actual timing breakdown if available
@@ -124,7 +124,7 @@ def process_query():
 
             # Store this response in the cache for future shadow mode analysis
             try:
-                add_to_cache(query, response, embedding_model, user_redis_url)
+                add_to_cache_helper(query, response, embedding_model, user_redis_url, user_openai_key)
                 print("SHADOW MODE - Response added to cache for future analysis")
             except Exception as e:
                 print(f"SHADOW MODE - Error adding response to cache: {e}")
@@ -188,7 +188,7 @@ def process_query():
 
             # First, check if we have a similar query in the Redis semantic cache
             cache_start_time = time.time()
-            cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url)
+            cached_result = search_cache(query, embedding_model, similarity_threshold, user_redis_url, user_openai_key)
             cache_time = time.time() - cache_start_time
 
             # Get actual timing breakdown if available
@@ -266,7 +266,7 @@ def process_query():
 
             # Store this response in the cache for future use
             try:
-                add_to_cache(query, response, embedding_model, user_redis_url)
+                add_to_cache_helper(query, response, embedding_model, user_redis_url, user_openai_key)
             except Exception as e:
                 print(f"Error adding response to cache: {e}")
 

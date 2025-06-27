@@ -21,11 +21,9 @@ genai_client = genai.Client(api_key=GEMINI_API_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 LANGCACHE_INDEX_NAME = 'llm_cache'
-LANGCACHE_URLS = {
-    'ollama-bge': 'http://localhost:8080',
-    'redis-langcache': 'http://localhost:8081',
-    'openai-text-embedding-small': 'http://localhost:8082'
-}
+
+# Import unified embedding service
+from .embeddings import create_cache as create_embedding_cache, add_to_cache, search_cache as search_embedding_cache
 
 cache_ids = {}
 DEFAULT_EMBEDDING_MODEL = 'redis-langcache'
@@ -223,72 +221,32 @@ def create_cache(user_redis_url=None):
     # Use user Redis URL or fallback to environment
     redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
-    # Handle custom embedding services (ollama-bge and openai-embeddings)
-    for model_name in ['ollama-bge', 'openai-text-embedding-small']:
-        base_url = LANGCACHE_URLS[model_name]
-        url = f"{base_url}/v1/admin/caches"
-        payload = {
-            "indexName": f"{LANGCACHE_INDEX_NAME}_{model_name}",
-            "redisUrls": [redis_url],
-            "embeddingModel": model_name,
-            "overwriteIfExists": True,
-            "allowExistingData": True,
-            "defaultSimilarityThreshold": 0.85
-        }
+    # Create caches for all embedding models using unified service
+    success_count = 0
+
+    for model_name in ['redis-langcache', 'openai-text-embedding-small', 'ollama-bge']:
         try:
-            # Add OpenAI API key header for OpenAI service
-            headers = {'Content-Type': 'application/json'}
-            if model_name == 'openai-text-embedding-small':
-                # Get OpenAI API key from user settings (passed via user_redis_url parameter)
-                # For now, we'll need to pass this differently
-                pass
+            cache_name = f"{LANGCACHE_INDEX_NAME}_{model_name}"
+            cache_id = create_embedding_cache(cache_name, redis_url)
 
-            response = requests.post(url, json=payload, headers=headers)
-            if response.status_code == 200 or response.status_code == 201:
-                data = response.json()
-                cache_id = data.get('cacheId')
+            if cache_id:
                 cache_ids[model_name] = cache_id
-                print(f"Created cache for {model_name}: {cache_id}")
+                print(f"✓ Created cache for {model_name}: {cache_id}")
+                success_count += 1
+            else:
+                # Use a default cache ID if creation fails
+                cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
+                print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
+
         except Exception as e:
-            print(f"Error creating cache for {model_name}: {e}")
-
-    # Handle Redis LangCache service (different API)
-    model_name = 'redis-langcache'
-    try:
-        base_url = LANGCACHE_URLS[model_name]
-
-        payload = {
-            "indexName": f"{LANGCACHE_INDEX_NAME}_{model_name}",
-            "redisUrls": [redis_url],
-            "modelName": "redis/langcache-embed-v1",
-            "overwriteIfExists": True,
-            "allowExistingData": True,
-            "defaultSimilarityThreshold": 0.85
-        }
-
-        url = f"{base_url}/v1/admin/caches"
-        response = requests.post(url, json=payload)
-
-        if response.status_code == 200 or response.status_code == 201:
-            data = response.json()
-            cache_id = data.get('cacheId')
-            cache_ids[model_name] = cache_id
-            print(f"Created Redis LangCache: {cache_id}")
-        else:
-            print(f"Redis LangCache creation failed: {response.status_code} - {response.text}")
-            # For now, use a default cache ID for Redis LangCache
+            print(f"✗ Error creating cache for {model_name}: {e}")
+            # Use a default cache ID
             cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-            print(f"Using default cache ID for {model_name}: {cache_ids[model_name]}")
+            print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
 
-    except Exception as e:
-        print(f"Error creating Redis LangCache: {e}")
-        # Use a default cache ID as fallback
-        cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-        print(f"Using fallback cache ID for {model_name}: {cache_ids[model_name]}")
+    return success_count > 0
 
-    return len(cache_ids) > 0
-
-def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None, user_redis_url=None):
+def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None, user_redis_url=None, user_api_key=None):
     """Search for a similar query in the cache using the specified embedding model"""
     global operations_log
 
@@ -328,110 +286,81 @@ def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None,
     if similarity_threshold is None:
         similarity_threshold = 0.85
 
-    # Get the base URL for the selected embedding model
-    base_url = LANGCACHE_URLS.get(embedding_model)
-    if not base_url:
-        print(f"No base URL available for {embedding_model}")
-        return None
-
-    # Use provided threshold or default to 0.85
-    threshold = similarity_threshold if similarity_threshold is not None else 0.85
-
-    # Handle different API formats
-    if embedding_model == 'redis-langcache':
-        # Redis LangCache API format
-        url = f"{base_url}/v1/caches/{cache_id}/search"
-        payload = {
-            "prompt": query,
-            "similarityThreshold": threshold
-        }
-    else:
-        # Custom embedding services API format
-        url = f"{base_url}/v1/caches/{cache_id}/search"
-        payload = {
-            "prompt": query,
-            "similarity_threshold": threshold
-        }
+    # Use user Redis URL or fallback to environment
+    redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
     try:
-        print(f"Searching cache with {embedding_model} at {url}")
+        print(f"Searching cache with {embedding_model}")
 
         # Track embedding generation time
         embedding_start_time = time.time()
 
-        response = requests.post(url, json=payload)
+        # Use unified embedding service
+        match = search_embedding_cache(cache_id, query, redis_url, similarity_threshold, embedding_model, user_api_key)
 
         total_request_time = time.time() - embedding_start_time
 
-        if response.status_code == 200:
-            data = response.json()
-            print(f"Cache search response: {data}")
+        # Log cache search step
+        operations_log['steps'].append({
+            'step': 'CACHE SEARCH',
+            'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
+            'details': {
+                'cache_id': cache_id,
+                'search_time': f"{total_request_time:.3f}s",
+                'results_found': 1 if match else 0
+            }
+        })
 
-            # Log cache search step
+        if match:
+            # Found a match
+            similarity = match.get('similarity', 0)
+            cached_response = match.get('response', '')
+            entry_id = match.get('entryId', '')
+            matched_query = match.get('prompt', '')
+
+            print(f"Cache hit! Similarity: {similarity}, Entry ID: {entry_id}")
+
+            # Log cache hit
             operations_log['steps'].append({
-                'step': 'CACHE SEARCH',
+                'step': 'CACHE HIT',
                 'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
                 'details': {
-                    'cache_id': cache_id,
-                    'search_time': f"{total_request_time:.3f}s",
-                    'results_found': len(data) if isinstance(data, list) else 0
+                    'similarity': similarity,
+                    'entry_id': entry_id,
+                    'matched_query': matched_query[:100] + '...' if len(matched_query) > 100 else matched_query
                 }
             })
 
-            if data and len(data) > 0:
-                # Found a match
-                match = data[0]
-                similarity = match.get('similarity', 0)
-                cached_response = match.get('response', '')
-                entry_id = match.get('entryId', '')
-                matched_query = match.get('prompt', '')
+            # Update result summary
+            operations_log['result'] = {
+                'source': 'cache',
+                'similarity': similarity,
+                'total_time': total_request_time
+            }
 
-                print(f"Cache hit! Similarity: {similarity}, Entry ID: {entry_id}")
+            # Extract actual timing data if available
+            embedding_time = total_request_time * 0.8
+            search_time = total_request_time * 0.2
 
-                # Log cache hit
-                operations_log['steps'].append({
-                    'step': 'CACHE HIT',
-                    'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
-                    'details': {
-                        'similarity': similarity,
-                        'entry_id': entry_id,
-                        'matched_query': matched_query[:100] + '...' if len(matched_query) > 100 else matched_query
-                    }
-                })
-
-                # Update result summary
-                operations_log['result'] = {
-                    'source': 'cache',
-                    'similarity': similarity,
-                    'total_time': total_request_time
-                }
-
-                # Extract actual timing data if available
-                embedding_time = match.get('embedding_time', total_request_time * 0.8)
-                search_time = match.get('search_time', total_request_time * 0.2)
-
-                return {
-                    'response': cached_response,
-                    'similarity': similarity,
-                    'entryId': entry_id,
-                    'matched_query': matched_query,
-                    'embedding_time': embedding_time,
-                    'redis_search_time': search_time,
-                    'total_cache_time': total_request_time
-                }
-            else:
-                print("No cache match found")
-                # Log cache miss
-                operations_log['steps'].append({
-                    'step': 'CACHE MISS',
-                    'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
-                    'details': {
-                        'message': 'No similar queries found in cache'
-                    }
-                })
-                return None
+            return {
+                'response': cached_response,
+                'similarity': similarity,
+                'entryId': entry_id,
+                'matched_query': matched_query,
+                'embedding_time': embedding_time,
+                'redis_search_time': search_time,
+                'total_cache_time': total_request_time
+            }
         else:
-            print(f"Cache search failed: {response.status_code} - {response.text}")
+            print("No cache match found")
+            # Log cache miss
+            operations_log['steps'].append({
+                'step': 'CACHE MISS',
+                'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
+                'details': {
+                    'message': 'No similar queries found in cache'
+                }
+            })
             return None
     except Exception as e:
         print(f"Error searching cache: {e}")
@@ -444,7 +373,7 @@ def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None,
         })
         return None
 
-def add_to_cache(query, response, embedding_model="ollama-bge", user_redis_url=None):
+def add_to_cache_helper(query, response, embedding_model="ollama-bge", user_redis_url=None, user_api_key=None):
     """Add a query-response pair to the cache using the specified embedding model"""
     # Get the cache ID for the selected embedding model
     cache_id = cache_ids.get(embedding_model)
@@ -452,36 +381,17 @@ def add_to_cache(query, response, embedding_model="ollama-bge", user_redis_url=N
         print(f"No cache_id available for {embedding_model}, skipping cache addition")
         return False
 
-    # Get the base URL for the selected embedding model
-    base_url = LANGCACHE_URLS.get(embedding_model)
-    if not base_url:
-        print(f"No base URL available for {embedding_model}")
-        return False
-
-    # Handle different API formats
-    if embedding_model == 'redis-langcache':
-        # Redis LangCache API format
-        url = f"{base_url}/v1/caches/{cache_id}/entries"
-        payload = {
-            "prompt": query,
-            "response": response
-        }
-    else:
-        # Custom embedding services API format
-        url = f"{base_url}/v1/caches/{cache_id}/entries"
-        payload = {
-            "prompt": query,
-            "response": response
-        }
+    # Use user Redis URL or fallback to environment
+    redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
     try:
-        print(f"Adding to cache with {embedding_model} at {url}")
-        response_obj = requests.post(url, json=payload)
+        print(f"Adding to cache with {embedding_model}")
 
-        if response_obj.status_code == 200 or response_obj.status_code == 201:
-            data = response_obj.json()
-            entry_id = data.get('entryId', 'Unknown')
-            print(f"Successfully added to cache. Entry ID: {entry_id}")
+        # Use unified embedding service
+        success = add_to_cache(cache_id, query, response, redis_url, embedding_model, user_api_key)
+
+        if success:
+            print(f"Successfully added to cache with {embedding_model}")
 
             # Log cache addition step
             if operations_log.get('query') == query and operations_log.get('embedding_model') == embedding_model:
@@ -489,14 +399,14 @@ def add_to_cache(query, response, embedding_model="ollama-bge", user_redis_url=N
                     'step': 'CACHE ADDITION',
                     'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
                     'details': {
-                        'entry_id': entry_id,
-                        'cache_id': cache_id
+                        'cache_id': cache_id,
+                        'embedding_model': embedding_model
                     }
                 })
 
             return True
         else:
-            print(f"Failed to add to cache: {response_obj.status_code} - {response_obj.text}")
+            print(f"Failed to add to cache with {embedding_model}")
             return False
     except Exception as e:
         print(f"Error adding to cache: {e}")
