@@ -186,14 +186,21 @@ def get_empty_metrics():
         "cost_savings_percentage": 0
     }
 
-if __name__ == '__main__':
-    # Create caches on startup
+# For Vercel deployment, we don't use app.run()
+# The app instance is automatically used by Vercel
+
+# Initialize caches when the module is imported (for serverless)
+try:
     print("Creating Redis Langcache instances...")
     if create_cache():
         print("✓ Caches created successfully")
     else:
         print("⚠ Warning: Some caches may not have been created")
-    
-    print("Starting Flask application...")
+except Exception as e:
+    print(f"Cache initialization error: {e}")
+
+# For local development
+if __name__ == '__main__':
+    print("Starting Flask application locally...")
     port = int(os.environ.get('PORT', 10000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
