@@ -148,6 +148,16 @@ def calculate_shadow_metrics(data):
     if avg_llm_latency > 0 and avg_cache_latency > 0:
         latency_improvement = ((avg_llm_latency - avg_cache_latency) / avg_llm_latency * 100)
 
+    # Calculate cost savings
+    total_tokens_saved = sum(item.get('tokens_llm', 0) for item in data if item.get('cache_hit', False))
+    total_tokens_used = sum(item.get('tokens_llm', 0) for item in data)
+
+    # Estimate cost savings (assuming $0.002 per 1K tokens for GPT-4)
+    cost_per_1k_tokens = 0.002
+    cost_saved = (total_tokens_saved / 1000) * cost_per_1k_tokens
+    total_cost_without_cache = (total_tokens_used / 1000) * cost_per_1k_tokens
+    cost_savings_percentage = (cost_saved / total_cost_without_cache * 100) if total_cost_without_cache > 0 else 0
+
     return {
         "total_queries": total_queries,
         "cache_hits": cache_hits,
@@ -155,7 +165,10 @@ def calculate_shadow_metrics(data):
         "hit_rate": round(hit_rate, 1),
         "avg_llm_latency": round(avg_llm_latency, 1),
         "avg_cache_latency": round(avg_cache_latency, 1),
-        "latency_improvement": round(latency_improvement, 1)
+        "latency_improvement": round(latency_improvement, 1),
+        "total_tokens_saved": total_tokens_saved,
+        "cost_saved": round(cost_saved, 4),
+        "cost_savings_percentage": round(cost_savings_percentage, 1)
     }
 
 def get_empty_metrics():
@@ -167,7 +180,10 @@ def get_empty_metrics():
         "hit_rate": 0,
         "avg_llm_latency": 0,
         "avg_cache_latency": 0,
-        "latency_improvement": 0
+        "latency_improvement": 0,
+        "total_tokens_saved": 0,
+        "cost_saved": 0,
+        "cost_savings_percentage": 0
     }
 
 if __name__ == '__main__':

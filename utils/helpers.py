@@ -22,9 +22,9 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 LANGCACHE_INDEX_NAME = 'llm_cache'
 LANGCACHE_URLS = {
-    'ollama-bge': 'https://langcache-ollama.onrender.com',
-    'redis-langcache': 'https://langcache-redis.onrender.com',
-    'openai-text-embedding-small': 'https://langcache-openai.onrender.com'
+    'ollama-bge': 'http://localhost:8080',
+    'redis-langcache': 'http://localhost:8081',
+    'openai-text-embedding-small': 'http://localhost:8082'
 }
 
 cache_ids = {}
