@@ -39,11 +39,23 @@ def get_redis_langcache_model():
         try:
             from sentence_transformers import SentenceTransformer
             hf_token = os.environ.get("HF_TOKEN")
+
+            if not hf_token:
+                print("⚠ Warning: HF_TOKEN not provided. Redis LangCache model requires Hugging Face authentication.")
+                print("   Get your token from: https://huggingface.co/settings/tokens")
+                _redis_langcache_model = None
+                return None
+
             model_name = "redis/langcache-embed-v1"
             _redis_langcache_model = SentenceTransformer(model_name, use_auth_token=hf_token)
             print(f"✓ Loaded Redis LangCache model: {model_name}")
         except Exception as e:
             print(f"⚠ Warning: Could not load Redis LangCache model: {e}")
+            print("   This might be due to:")
+            print("   1. Invalid or missing HF_TOKEN")
+            print("   2. No access to redis/langcache-embed-v1 model")
+            print("   3. Network connectivity issues")
+            print("   Falling back to OpenAI embeddings for redis-langcache requests.")
             _redis_langcache_model = None
     return _redis_langcache_model
 
