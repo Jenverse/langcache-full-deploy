@@ -6,7 +6,7 @@ A comprehensive demonstration of LangCache semantic caching capabilities with li
 
 Deploy to Vercel with one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=OPENAI_API_KEY,REDIS_URL&envDescription=Required%20environment%20variables%20for%20LangCache%20Full%20Demo&envLink=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy%23environment-variables&project-name=langcache-full-demo&repository-name=langcache-full-demo)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=OPENAI_API_KEY,REDIS_URL&envDescription=OpenAI%20API%20key%20and%20Redis%20URL%20for%20LangCache%20Full%20Demo&project-name=langcache-full-demo&repository-name=langcache-full-demo)
 
 ## 🚀 Features
 
