@@ -2,6 +2,12 @@
 
 A comprehensive demonstration of LangCache semantic caching capabilities with live comparison, shadow mode analysis, and performance metrics.
 
+## 🚀 Quick Deploy
+
+Deploy to Vercel with one click:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=GEMINI_API_KEY,REDIS_URL&envDescription=Required%20environment%20variables%20for%20LangCache%20Full%20Demo&envLink=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy%23environment-variables&project-name=langcache-full-demo&repository-name=langcache-full-demo)
+
 ## 🚀 Features
 
 - **Live Mode**: Real-time comparison between semantic cache and direct LLM responses
@@ -28,7 +34,17 @@ A comprehensive demonstration of LangCache semantic caching capabilities with li
 - Python 3.8+
 - Google Gemini API key
 
-### Environment Setup
+### Environment Variables
+
+When deploying to Vercel, you'll need to set these environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `GEMINI_API_KEY` | Google Gemini API key for LLM queries | ✅ Yes |
+| `REDIS_URL` | Redis connection URL (e.g., `redis://user:pass@host:port`) | ✅ Yes |
+| `OPENAI_API_KEY` | OpenAI API key (if using OpenAI embeddings) | ❌ Optional |
+
+### Local Environment Setup
 
 1. Clone the repository:
 ```bash
