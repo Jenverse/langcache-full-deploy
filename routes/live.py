@@ -20,7 +20,7 @@ def process_query():
     data = request.json
     query = data.get('query', '')
     use_cache = data.get('use_cache', False)
-    llm_model = data.get('llm_model', 'gemini-1.5-flash')
+    llm_model = data.get('llm_model', 'gpt-4o-mini')
     embedding_model = data.get('embedding_model', 'ollama-bge')
     similarity_threshold = data.get('similarity_threshold', 0.85)
     shadow_mode = data.get('shadow_mode', False)

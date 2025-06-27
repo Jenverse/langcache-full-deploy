@@ -6,7 +6,7 @@ A comprehensive demonstration of LangCache semantic caching capabilities with li
 
 Deploy to Vercel with one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=GEMINI_API_KEY,REDIS_URL&envDescription=Required%20environment%20variables%20for%20LangCache%20Full%20Demo&envLink=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy%23environment-variables&project-name=langcache-full-demo&repository-name=langcache-full-demo)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=OPENAI_API_KEY,REDIS_URL&envDescription=Required%20environment%20variables%20for%20LangCache%20Full%20Demo&envLink=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy%23environment-variables&project-name=langcache-full-demo&repository-name=langcache-full-demo)
 
 ## 🚀 Features
 
@@ -24,7 +24,7 @@ Deploy to Vercel with one click:
 - **Three Redis Langcache Instances**: Different embedding models
 - **Custom Embeddings Service**: Ollama BGE-3 model
 - **Redis Database**: Vector storage and search
-- **Google Gemini API**: LLM integration
+- **OpenAI API**: LLM integration (GPT models)
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ Deploy to Vercel with one click:
 
 - Docker and Docker Compose
 - Python 3.8+
-- Google Gemini API key
+- OpenAI API key
 
 ### Environment Variables
 
@@ -40,9 +40,9 @@ When deploying to Vercel, you'll need to set these environment variables:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `GEMINI_API_KEY` | Google Gemini API key for LLM queries | ✅ Yes |
+| `OPENAI_API_KEY` | OpenAI API key for LLM queries (GPT models) | ✅ Yes |
 | `REDIS_URL` | Redis connection URL (e.g., `redis://user:pass@host:port`) | ✅ Yes |
-| `OPENAI_API_KEY` | OpenAI API key (if using OpenAI embeddings) | ❌ Optional |
+| `GEMINI_API_KEY` | Google Gemini API key (if using Gemini models) | ❌ Optional |
 
 ### Local Environment Setup
 
@@ -54,12 +54,15 @@ cd langcache-demo
 
 2. Create a `.env` file:
 ```bash
-# Google Gemini Configuration
-GEMINI_API_KEY=your_gemini_api_key_here
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
 
 # Redis Configuration (optional, defaults provided)
 REDIS_HOST=localhost
 REDIS_PORT=6379
+
+# Optional: Google Gemini (if using Gemini models)
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### Running with Docker Compose
