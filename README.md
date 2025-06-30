@@ -6,7 +6,7 @@ A comprehensive demonstration of LangCache semantic caching capabilities with li
 
 Deploy to Vercel with one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&env=OPENAI_API_KEY,REDIS_URL&envDescription=OpenAI%20API%20key%20and%20Redis%20URL%20for%20LangCache%20Full%20Demo&project-name=langcache-full-demo&repository-name=langcache-full-demo)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FJenverse%2Flangcache-full-deploy&project-name=langcache-full-demo&repository-name=langcache-full-demo)
 
 ## 🚀 Features
 
@@ -34,17 +34,15 @@ Deploy to Vercel with one click:
 - Python 3.8+
 - OpenAI API key
 
-### Environment Variables
+### Configuration
 
-When deploying to Vercel, you'll need to set these environment variables:
+**No environment variables needed for deployment!** 🎉
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key for LLM queries and embeddings | ✅ Yes |
-| `REDIS_URL` | Redis connection URL (e.g., `redis://user:pass@host:port`) | ✅ Yes |
-| `GEMINI_API_KEY` | Google Gemini API key (if using Gemini models) | ❌ Optional |
+The app uses a secure Settings UI where users enter their own API keys:
+- **OpenAI API Key** - For LLM queries and embeddings
+- **Redis URL** - For caching (get free Redis from [Redis Cloud](https://redis.com/try-free/))
 
-**Note:** For Vercel deployment, all embedding models (redis-langcache, ollama-bge, openai-text-embedding-small) use OpenAI embeddings for optimal performance and compatibility.
+This approach is more secure as API keys are never stored on the server.
 
 ### Local Environment Setup
 

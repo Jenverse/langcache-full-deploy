@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const cachedTimeDisplay = document.getElementById('cached-time');
     const standardTimeDisplay = document.getElementById('standard-time');
     const llmModelSelect = document.getElementById('llm-model');
-    const embeddingModelSelect = document.getElementById('embedding-model');
+    // Fixed embedding model for simplified deployment
+    const embeddingModel = 'openai-text-embedding-small';
     const similarityThresholdInput = document.getElementById('similarity-threshold');
 
     // Clear welcome messages when first query is submitted
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 query: query,
                 use_cache: true,
                 llm_model: llmModelSelect.value,
-                embedding_model: embeddingModelSelect.value,
+                embedding_model: embeddingModel,
                 similarity_threshold: parseFloat(similarityThresholdInput.value) || 0.85,
                 user_openai_key: settings.openaiApiKey,
                 user_redis_url: settings.redisUrl
@@ -343,17 +344,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const queryInput = document.getElementById('shadow-query-input');
         const llmModelSelect = document.getElementById('shadow-llm-model');
-        const embeddingModelSelect = document.getElementById('shadow-embedding-model');
         const similarityThresholdInput = document.getElementById('shadow-similarity-threshold');
+        // Fixed embedding model for simplified deployment
+        const embeddingModel = 'openai-text-embedding-small';
 
         console.log('Shadow mode form elements:', {
             queryInput: !!queryInput,
             llmModelSelect: !!llmModelSelect,
-            embeddingModelSelect: !!embeddingModelSelect,
             similarityThresholdInput: !!similarityThresholdInput
         });
 
-        if (!queryInput || !llmModelSelect || !embeddingModelSelect || !similarityThresholdInput) {
+        if (!queryInput || !llmModelSelect || !similarityThresholdInput) {
             console.error('Shadow mode elements not found');
             return;
         }
@@ -366,7 +367,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const llmModel = llmModelSelect.value;
-        const embeddingModel = embeddingModelSelect.value;
         const similarityThreshold = parseFloat(similarityThresholdInput.value);
 
         const shadowCachedChat = document.getElementById('shadow-cached-chat');

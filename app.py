@@ -200,15 +200,8 @@ def get_empty_metrics():
 # For Vercel deployment, we don't use app.run()
 # The app instance is automatically used by Vercel
 
-# Initialize caches when the module is imported (for serverless)
-try:
-    print("Creating Redis Langcache instances...")
-    if create_cache():
-        print("✓ Caches created successfully")
-    else:
-        print("⚠ Warning: Some caches may not have been created")
-except Exception as e:
-    print(f"Cache initialization error: {e}")
+# Caches will be created when users provide Redis URL in Settings
+print("🚀 LangCache Demo ready - caches will be created when users provide Redis URL")
 
 # For local development
 if __name__ == '__main__':

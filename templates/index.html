@@ -46,14 +46,7 @@
                             <option value="gemini-1.5-flash">Google Gemini Flash 1.5</option>
                         </select>
                     </div>
-                    <div class="model-dropdown">
-                        <label for="embedding-model">Embedding Model:</label>
-                        <select id="embedding-model">
-                            <option value="redis-langcache" selected>Redis: Langcache-Embed</option>
-                            <option value="openai-text-embedding-small">OpenAI: text-embedding-small</option>
-                            <option value="ollama-bge">Ollama: BGE-3</option>
-                        </select>
-                    </div>
+                    <!-- Embedding model is now fixed to OpenAI for simplicity -->
                     <div class="threshold-input">
                         <label for="similarity-threshold">Similarity Threshold:</label>
                         <input type="number" id="similarity-threshold" min="0" max="1" step="0.01" value="0.85" placeholder="0.85">
@@ -116,14 +109,7 @@
                             <option value="gemini-1.5-flash">Google Gemini Flash 1.5</option>
                         </select>
                     </div>
-                    <div class="model-dropdown">
-                        <label for="shadow-embedding-model">Embedding Model:</label>
-                        <select id="shadow-embedding-model">
-                            <option value="redis-langcache" selected>Redis: Langcache-Embed</option>
-                            <option value="openai-text-embedding-small">OpenAI: text-embedding-small</option>
-                            <option value="ollama-bge">Ollama: BGE-3</option>
-                        </select>
-                    </div>
+                    <!-- Embedding model is now fixed to OpenAI for simplicity -->
                     <div class="threshold-input">
                         <label for="shadow-similarity-threshold">Similarity Threshold:</label>
                         <input type="number" id="shadow-similarity-threshold" min="0" max="1" step="0.01" value="0.85" placeholder="0.85">

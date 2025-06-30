@@ -218,33 +218,33 @@ def get_current_timestamp():
 def create_cache(user_redis_url=None):
     global cache_ids
 
-    # Use user Redis URL or fallback to environment
-    redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    # Use user Redis URL (required for proper caching)
+    if not user_redis_url:
+        print("⚠ No Redis URL provided - caching will not work")
+        return False
 
-    # Create caches for all embedding models using unified service
-    success_count = 0
+    # Create cache for OpenAI embedding model only (simplified)
+    model_name = 'openai-text-embedding-small'
+    try:
+        cache_name = f"{LANGCACHE_INDEX_NAME}_{model_name}"
+        cache_id = create_embedding_cache(cache_name, user_redis_url)
 
-    for model_name in ['redis-langcache', 'openai-text-embedding-small', 'ollama-bge']:
-        try:
-            cache_name = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-            cache_id = create_embedding_cache(cache_name, redis_url)
-
-            if cache_id:
-                cache_ids[model_name] = cache_id
-                print(f"✓ Created cache for {model_name}: {cache_id}")
-                success_count += 1
-            else:
-                # Use a default cache ID if creation fails
-                cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-                print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
-
-        except Exception as e:
-            print(f"✗ Error creating cache for {model_name}: {e}")
-            # Use a default cache ID
+        if cache_id:
+            cache_ids[model_name] = cache_id
+            print(f"✓ Created cache for {model_name}: {cache_id}")
+            return True
+        else:
+            # Use a default cache ID if creation fails
             cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
             print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
+            return True
 
-    return success_count > 0
+    except Exception as e:
+        print(f"✗ Error creating cache for {model_name}: {e}")
+        # Use a default cache ID
+        cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
+        print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
+        return True
 
 def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None, user_redis_url=None, user_api_key=None):
     """Search for a similar query in the cache using the specified embedding model"""
@@ -269,18 +269,24 @@ def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None,
         }
     })
 
-    # Get the cache ID for the selected embedding model
+    # Ensure cache exists for the embedding model
     cache_id = cache_ids.get(embedding_model)
     if not cache_id:
-        print(f"No cache_id available for {embedding_model}, skipping cache search")
-        operations_log['steps'].append({
-            'step': 'ERROR',
-            'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
-            'details': {
-                'error': f'No cache_id available for {embedding_model}'
-            }
-        })
-        return None
+        print(f"No cache_id available for {embedding_model}, creating cache...")
+        # Try to create cache with user's Redis URL
+        if create_cache(user_redis_url):
+            cache_id = cache_ids.get(embedding_model)
+
+        if not cache_id:
+            print(f"Failed to create cache for {embedding_model}, skipping cache search")
+            operations_log['steps'].append({
+                'step': 'ERROR',
+                'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
+                'details': {
+                    'error': f'No cache_id available for {embedding_model}'
+                }
+            })
+            return None
 
     # Use default similarity threshold if not provided
     if similarity_threshold is None:
