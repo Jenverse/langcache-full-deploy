@@ -70,17 +70,9 @@ operations_log = {
 
 query_matches = []
 
-# Redis connection for persistent shadow mode data
+# Redis connection for persistent shadow mode data - will be created when needed
 redis_client = None
-try:
-    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-    redis_client = redis.from_url(redis_url, decode_responses=True)
-    # Test connection
-    redis_client.ping()
-    print(f"Connected to Redis for shadow mode data: {redis_url}")
-except Exception as e:
-    print(f"Failed to connect to Redis: {e}")
-    redis_client = None
+print("Redis client will be initialized when user provides Redis URL")
 
 # Shadow mode data key in Redis
 SHADOW_MODE_KEY = "langcache:shadow_mode_data"

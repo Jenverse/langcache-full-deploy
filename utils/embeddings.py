@@ -16,8 +16,9 @@ _openai_client = None
 
 def get_redis_client(redis_url=None):
     """Get Redis client"""
-    url = redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
-    return redis.from_url(url, decode_responses=True)
+    if not redis_url:
+        raise ValueError("Redis URL is required - no localhost fallback in serverless environment")
+    return redis.from_url(redis_url, decode_responses=True)
 
 def get_openai_client(api_key=None):
     """Get OpenAI client"""

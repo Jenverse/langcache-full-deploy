@@ -4,7 +4,7 @@ import time
 import statistics
 from collections import defaultdict
 from utils.helpers import (
-    get_current_timestamp, create_cache, search_cache, add_to_cache_helper, generate_gemini_response,
+    get_current_timestamp, search_cache, add_to_cache_helper, generate_gemini_response,
     generate_llm_response_with_user_key, latency_data, operations_log, query_matches, cache_ids,
     DEFAULT_EMBEDDING_MODEL, shadow_mode_data
 )
