@@ -1,7 +1,7 @@
 from flask import Flask, send_from_directory, jsonify, render_template, request
 from routes.live import live_bp
 from routes.shadow import shadow_bp
-from utils.helpers import create_cache
+# Removed create_cache import - not needed anymore
 import json
 import os
 
@@ -242,7 +242,7 @@ def get_empty_metrics():
 # The app instance is automatically used by Vercel
 
 # Cache data persists automatically in user's Redis URL
-print("🚀 LangCache Demo ready - semantic caching will work with user's Redis URL")
+print("🚀 LangCache Demo ready - semantic caching with persistent cache_id in Redis!")
 
 # For local development
 if __name__ == '__main__':
