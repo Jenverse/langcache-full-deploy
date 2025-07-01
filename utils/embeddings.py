@@ -52,33 +52,56 @@ def get_embedding(text: str, model_type: str = "openai", api_key: str = None) ->
     )
     return response.data[0].embedding
 
-def create_cache(cache_name: str, redis_url: str) -> str:
+def create_cache_and_store_id(redis_url: str) -> str:
     """
-    Create a new cache
-    
+    Create cache when user saves configuration and store cache_id in Redis
+
     Returns:
         cache_id: Unique identifier for the cache
     """
     try:
-        cache_id = str(uuid.uuid4())
         redis_client = get_redis_client(redis_url)
-        
+
+        # Check if cache_id already exists
+        existing_cache_id = redis_client.get("langcache_cache_id")
+        if existing_cache_id:
+            print(f"✓ Cache already exists: {existing_cache_id}")
+            return existing_cache_id
+
+        # Create new cache_id and store it in Redis
+        cache_id = str(uuid.uuid4())
+        redis_client.set("langcache_cache_id", cache_id)
+
+        # Store cache metadata
         cache_config = {
             "cacheId": cache_id,
-            "indexName": cache_name,
-            "redisUrl": redis_url,
-            "defaultSimilarityThreshold": "0.85",
-            "created_at": str(time.time())
+            "created_at": str(time.time()),
+            "embedding_model": "openai-text-embedding-small"
         }
-        
-        # Store cache configuration
         redis_client.hset(f"cache_config:{cache_id}", mapping=cache_config)
-        
-        print(f"✓ Created cache: {cache_id}")
+
+        print(f"✓ Created cache and stored ID in Redis: {cache_id}")
         return cache_id
-        
+
     except Exception as e:
         print(f"✗ Error creating cache: {e}")
+        return None
+
+def get_cache_id_from_redis(redis_url: str) -> str:
+    """
+    Read cache_id from Redis on every request
+
+    Returns:
+        cache_id: Cached identifier or None if not found
+    """
+    try:
+        redis_client = get_redis_client(redis_url)
+        cache_id = redis_client.get("langcache_cache_id")
+        if cache_id:
+            return cache_id
+        return None
+    except Exception as e:
+        print(f"✗ Error reading cache_id from Redis: {e}")
         return None
 
 def add_to_cache(cache_id: str, prompt: str, response: str, redis_url: str, 

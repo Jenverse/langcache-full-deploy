@@ -32,7 +32,27 @@ def shadow_analysis():
     """Serve the shadow analysis page"""
     return render_template('shadow_analysis.html')
 
-# Cache initialization not needed - Redis persists data automatically
+@app.route('/api/init-cache', methods=['POST'])
+def init_cache():
+    """Initialize cache when user saves settings"""
+    try:
+        data = request.get_json()
+        user_redis_url = data.get('redis_url')
+
+        if not user_redis_url:
+            return jsonify({'error': 'Redis URL required'}), 400
+
+        # Create cache and store cache_id in Redis for persistence
+        from utils.embeddings import create_cache_and_store_id
+        cache_id = create_cache_and_store_id(user_redis_url)
+
+        if cache_id:
+            return jsonify({'success': True, 'message': 'Cache initialized successfully', 'cache_id': cache_id})
+        else:
+            return jsonify({'success': False, 'message': 'Cache initialization failed'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/test-cache', methods=['POST'])
 def test_cache():

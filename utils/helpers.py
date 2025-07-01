@@ -23,7 +23,7 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 LANGCACHE_INDEX_NAME = 'llm_cache'
 
 # Import unified embedding service
-from .embeddings import create_cache as create_embedding_cache, add_to_cache, search_cache as search_embedding_cache
+from .embeddings import create_cache_and_store_id, add_to_cache, search_cache as search_embedding_cache, get_cache_id_from_redis
 
 cache_ids = {}
 DEFAULT_EMBEDDING_MODEL = 'redis-langcache'
@@ -253,8 +253,18 @@ def search_cache(query, embedding_model="openai-text-embedding-small", similarit
         })
         return None
 
-    # Use a simple cache_id - the cache persists in Redis at user's URL
-    cache_id = f"{LANGCACHE_INDEX_NAME}_{embedding_model}"
+    # Read cache_id from Redis (saved when user configured settings)
+    cache_id = get_cache_id_from_redis(user_redis_url)
+    if not cache_id:
+        print("No cache_id found in Redis - user needs to save settings first")
+        operations_log['steps'].append({
+            'step': 'ERROR',
+            'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
+            'details': {
+                'error': 'No cache_id found - please save settings first'
+            }
+        })
+        return None
 
     # Use default similarity threshold if not provided
     if similarity_threshold is None:
@@ -351,8 +361,11 @@ def add_to_cache_helper(query, response, embedding_model="openai-text-embedding-
         print("No user Redis URL provided, skipping cache addition")
         return False
 
-    # Use a simple cache_id - the cache persists in Redis at user's URL
-    cache_id = f"{LANGCACHE_INDEX_NAME}_{embedding_model}"
+    # Read cache_id from Redis (saved when user configured settings)
+    cache_id = get_cache_id_from_redis(user_redis_url)
+    if not cache_id:
+        print("No cache_id found in Redis - user needs to save settings first")
+        return False
 
     try:
         print(f"Adding to cache with {embedding_model}")
