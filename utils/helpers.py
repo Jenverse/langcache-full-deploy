@@ -215,38 +215,10 @@ def get_current_timestamp():
     rounded_time = now.replace(minute=minute, second=0, microsecond=0)
     return rounded_time.strftime('%Y-%m-%d %H:%M')
 
-def create_cache(user_redis_url=None):
-    global cache_ids
+# Cache creation is not needed - Redis persists data at the user's Redis URL
+# We just use the Redis URL directly to store and retrieve cache entries
 
-    # Use user Redis URL (required for proper caching)
-    if not user_redis_url:
-        print("⚠ No Redis URL provided - caching will not work")
-        return False
-
-    # Create cache for OpenAI embedding model only (simplified)
-    model_name = 'openai-text-embedding-small'
-    try:
-        cache_name = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-        cache_id = create_embedding_cache(cache_name, user_redis_url)
-
-        if cache_id:
-            cache_ids[model_name] = cache_id
-            print(f"✓ Created cache for {model_name}: {cache_id}")
-            return True
-        else:
-            # Use a default cache ID if creation fails
-            cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-            print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
-            return True
-
-    except Exception as e:
-        print(f"✗ Error creating cache for {model_name}: {e}")
-        # Use a default cache ID
-        cache_ids[model_name] = f"{LANGCACHE_INDEX_NAME}_{model_name}"
-        print(f"⚠ Using default cache ID for {model_name}: {cache_ids[model_name]}")
-        return True
-
-def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None, user_redis_url=None, user_api_key=None):
+def search_cache(query, embedding_model="openai-text-embedding-small", similarity_threshold=None, user_redis_url=None, user_api_key=None):
     """Search for a similar query in the cache using the specified embedding model"""
     global operations_log
 
@@ -269,31 +241,24 @@ def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None,
         }
     })
 
-    # Ensure cache exists for the embedding model
-    cache_id = cache_ids.get(embedding_model)
-    if not cache_id:
-        print(f"No cache_id available for {embedding_model}, creating cache...")
-        # Try to create cache with user's Redis URL
-        if create_cache(user_redis_url):
-            cache_id = cache_ids.get(embedding_model)
+    # For Vercel serverless, use user's Redis URL directly
+    if not user_redis_url:
+        print("No user Redis URL provided, skipping cache search")
+        operations_log['steps'].append({
+            'step': 'ERROR',
+            'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
+            'details': {
+                'error': 'No Redis URL provided by user'
+            }
+        })
+        return None
 
-        if not cache_id:
-            print(f"Failed to create cache for {embedding_model}, skipping cache search")
-            operations_log['steps'].append({
-                'step': 'ERROR',
-                'timestamp': datetime.datetime.now().strftime('%H:%M:%S'),
-                'details': {
-                    'error': f'No cache_id available for {embedding_model}'
-                }
-            })
-            return None
+    # Use a simple cache_id - the cache persists in Redis at user's URL
+    cache_id = f"{LANGCACHE_INDEX_NAME}_{embedding_model}"
 
     # Use default similarity threshold if not provided
     if similarity_threshold is None:
         similarity_threshold = 0.85
-
-    # Use user Redis URL or fallback to environment
-    redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
     try:
         print(f"Searching cache with {embedding_model}")
@@ -301,8 +266,8 @@ def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None,
         # Track embedding generation time
         embedding_start_time = time.time()
 
-        # Use unified embedding service
-        match = search_embedding_cache(cache_id, query, redis_url, similarity_threshold, embedding_model, user_api_key)
+        # Use unified embedding service directly with user's Redis URL
+        match = search_embedding_cache(cache_id, query, user_redis_url, similarity_threshold, embedding_model, user_api_key)
 
         total_request_time = time.time() - embedding_start_time
 
@@ -379,22 +344,21 @@ def search_cache(query, embedding_model="ollama-bge", similarity_threshold=None,
         })
         return None
 
-def add_to_cache_helper(query, response, embedding_model="ollama-bge", user_redis_url=None, user_api_key=None):
+def add_to_cache_helper(query, response, embedding_model="openai-text-embedding-small", user_redis_url=None, user_api_key=None):
     """Add a query-response pair to the cache using the specified embedding model"""
-    # Get the cache ID for the selected embedding model
-    cache_id = cache_ids.get(embedding_model)
-    if not cache_id:
-        print(f"No cache_id available for {embedding_model}, skipping cache addition")
+
+    if not user_redis_url:
+        print("No user Redis URL provided, skipping cache addition")
         return False
 
-    # Use user Redis URL or fallback to environment
-    redis_url = user_redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    # Use a simple cache_id - the cache persists in Redis at user's URL
+    cache_id = f"{LANGCACHE_INDEX_NAME}_{embedding_model}"
 
     try:
         print(f"Adding to cache with {embedding_model}")
 
-        # Use unified embedding service
-        success = add_to_cache(cache_id, query, response, redis_url, embedding_model, user_api_key)
+        # Use unified embedding service directly with user's Redis URL
+        success = add_to_cache(cache_id, query, response, user_redis_url, embedding_model, user_api_key)
 
         if success:
             print(f"Successfully added to cache with {embedding_model}")

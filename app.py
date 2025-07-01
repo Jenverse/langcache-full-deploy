@@ -32,24 +32,45 @@ def shadow_analysis():
     """Serve the shadow analysis page"""
     return render_template('shadow_analysis.html')
 
-@app.route('/api/init-cache', methods=['POST'])
-def init_cache():
-    """Initialize cache with user's Redis URL"""
+# Cache initialization not needed - Redis persists data automatically
+
+@app.route('/api/test-cache', methods=['POST'])
+def test_cache():
+    """Test cache functionality with user's Redis URL"""
     try:
         data = request.get_json()
         user_redis_url = data.get('redis_url')
+        user_api_key = data.get('openai_api_key')
 
-        if not user_redis_url:
-            return jsonify({'error': 'Redis URL required'}), 400
+        if not user_redis_url or not user_api_key:
+            return jsonify({'error': 'Redis URL and OpenAI API key required'}), 400
 
-        # Create cache using user's Redis URL
-        from utils.helpers import create_cache
-        success = create_cache(user_redis_url)
+        # Test cache operations
+        from utils.embeddings import create_cache as create_embedding_cache, add_to_cache, search_cache as search_embedding_cache
 
-        if success:
-            return jsonify({'success': True, 'message': 'Cache initialized successfully'})
-        else:
-            return jsonify({'success': False, 'message': 'Cache initialization failed'})
+        # Create cache
+        cache_id = create_embedding_cache("test_cache", user_redis_url)
+        if not cache_id:
+            return jsonify({'error': 'Failed to create cache'}), 500
+
+        # Add test entry
+        test_prompt = "What is the capital of France?"
+        test_response = "The capital of France is Paris."
+
+        add_success = add_to_cache(cache_id, test_prompt, test_response, user_redis_url, "openai-text-embedding-small", user_api_key)
+        if not add_success:
+            return jsonify({'error': 'Failed to add to cache'}), 500
+
+        # Search cache
+        search_result = search_embedding_cache(cache_id, test_prompt, user_redis_url, 0.85, "openai-text-embedding-small", user_api_key)
+
+        return jsonify({
+            'success': True,
+            'cache_id': cache_id,
+            'add_success': add_success,
+            'search_result': search_result is not None,
+            'search_similarity': search_result.get('similarity') if search_result else None
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -200,8 +221,8 @@ def get_empty_metrics():
 # For Vercel deployment, we don't use app.run()
 # The app instance is automatically used by Vercel
 
-# Caches will be created when users provide Redis URL in Settings
-print("🚀 LangCache Demo ready - caches will be created when users provide Redis URL")
+# Cache data persists automatically in user's Redis URL
+print("🚀 LangCache Demo ready - semantic caching will work with user's Redis URL")
 
 # For local development
 if __name__ == '__main__':
