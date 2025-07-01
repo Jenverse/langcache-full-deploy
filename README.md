@@ -4,6 +4,8 @@ A comprehensive demonstration of LangCache semantic caching capabilities with li
 
 🚀 **Ready for Vercel deployment with fixed semantic caching!**
 
+✅ **Latest Update**: Cache persistence fixed - cache_id now stored in Redis for serverless compatibility!
+
 ## 🚀 Quick Deploy
 
 Deploy to Vercel with one click:
